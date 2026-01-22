@@ -1,0 +1,56 @@
+name: proot
+
+permissions:
+  contents: write
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Run build.sh
+        run: |
+          chmod +x ./build.sh
+          sudo ./build.sh
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: output
+          path: |
+            output/x86_64/proot
+            output/aarch64/proot
+            output/armv7a/proot
+
+      - name: Rename
+        run: |
+          mkdir release
+
+          mkdir -p release/x86_64
+          cp -r output/x86_64/proot/bin/* release/x86_64/
+          tar -czf release/x86_64.tar.gz -C release/x86_64 .
+
+          mkdir -p release/armv7a
+          cp -r output/armv7a/proot/bin/* release/armv7a/
+          tar -czf release/armv7a.tar.gz -C release/armv7a .
+
+          mkdir -p release/aarch64
+          cp -r output/aarch64/proot/bin/* release/aarch64/
+          tar -czf release/aarch64.tar.gz -C release/aarch64 .
+
+      - name: Release
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: |
+            release/x86_64.tar.gz
+            release/armv7a.tar.gz
+            release/aarch64.tar.gz
